@@ -1,0 +1,50 @@
+version: '3'
+services:
+  mongodb:
+    image: 'mongo:latest'
+    restart: always
+    environment:
+      - MONGO_INITDB_DATABASE=sampledb
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root123
+    volumes: 
+      - ./mongodb/mongo-init.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+  redis:
+    image: 'redis:latest'
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - '3050:80'
+  api:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./server
+    volumes:
+      - /server/node_modules
+      - ./server:/server
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGO_URI=mongodb://root:root123@db:27017/sampledb
+    links: 
+      - "mongodb:db"
+  client:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /client/node_modules
+      - ./client:/client
+  worker:
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /worker/node_modules
+      - ./worker:/worker
