@@ -1,0 +1,22 @@
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t amithazra/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true amithazra/react-test npm run test -- --coverage
+
+after_success:
+  - docker build -t amithazra/multi-client ./client
+  - docker build -t amithazra/multi-nginx ./nginx
+  - docker build -t amithazra/multi-server ./server
+  - docker build -t amithazra/multi-worker ./worker
+  # login to docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push amithazra/multi-client
+  - docker push amithazra/multi-nginx
+  - docker push amithazra/multi-server
+  - docker push amithazra/multi-worker
